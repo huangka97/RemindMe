@@ -6,7 +6,7 @@ const token = process.env.SLACK_TOKEN;
 const web = new WebClient(token);
 
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
-const conversationId = 'DC7HC56G3';
+const conversationId = 'DC7PSNMJN';
 
 // See: https://api.slack.com/methods/chat.postMessage
 web.chat.postMessage({ channel: conversationId, text: 'Hello there' })
