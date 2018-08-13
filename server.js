@@ -1,5 +1,8 @@
 const { RTMClient,WebClient } = require('@slack/client');
 
+var google=require('googleapis');
+var slackID;
+var axios=require('axios');
 // An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
 const token = process.env.SLACK_TOKEN;
 const rtm=new RTMClient(token);
@@ -17,11 +20,11 @@ rtm.on('message', function (event) {
   //rtm.sendMessage('Hello there', event.channel, function(err, res) {
   //  console.log(err, res);
   //})
-  if (event.previous_message.text === "stop") return
+  if (event.bot_id === "BC8NBNYEB") return
   web.chat.postMessage({
     channel: conversationId,
     as_user: true,
-    'text': 'Would you like to play a game?',
+    'text': 'Would you like to schedule a meeting?',
     //response_url: "", webhook
     'attachments': [
       {
