@@ -8,6 +8,7 @@ yarn-error.log*
 env.sh
 dialogflow.json
 credentials.json
+token.json
 
 # Runtime data
 pids
