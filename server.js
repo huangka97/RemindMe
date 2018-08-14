@@ -8,10 +8,7 @@ import models from "./models/models"
 import mongoose from 'mongoose'
 
 const User = models.User
-const dialogflow = require('dialogflow');
-const sessionClient = new dialogflow.SessionsClient();
-
-var slackID;
+let slackID;
 const app = express()
 
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -23,30 +20,35 @@ const token = process.env.SLACK_TOKEN;
 const rtm = new RTMClient(token);
 const web = new WebClient(token);
 
+// https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
   process.env.REDIRECT_URL
 )
 
-function generateUrl(id) {
+let rando=0;
+function createAuthUrl(){
+  console.log("ENTERED CREATE AUTH URL");
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/calendar'
     ]
   })
-  console.log(authUrl)
-  rtm.sendMessage(authUrl, conversationId, (err, res) => {
-   if (res) {
-     console.log("dialog response sent", res)
-   } else {
-     console.log("dialog error, err")
-   }
- })
+
+  rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err,res)=>{
+    if(res){
+      console.log("success")
+    }else{
+      console.log("failure")
+    }
+  })
+
 }
 
 // Google API create cal event
+
 function makeCalendarAPICall(token) {
   const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
@@ -90,6 +92,7 @@ function makeCalendarAPICall(token) {
   // })
   // return;
 
+
   calendar.events.list({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     timeMin: (new Date()).toISOString(),
@@ -115,15 +118,20 @@ function makeCalendarAPICall(token) {
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
+    console.log("TEST")
     var newUser = new User({
       accessToken : token.access_token,
       refreshToken: token.refresh_token,
+      slackID:slackID
     })
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
+
     // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
+
     // console.log("token1 saved", token1)
+
     makeCalendarAPICall(token)
     res.send('ok')
   })
@@ -136,9 +144,12 @@ let conversationId;
 rtm.on('message', function (event) {
   conversationId = event.channel
   console.log(event)
+  slackID=event.user;
   if(event.previous_message) console.log('@@@@', JSON.stringify(event.previous_message, null,2))
   DialogFlow(event.text, event.user)
 })
+
+
 
 // slack Webhook
 app.post('/slack', (req, res) => {
@@ -149,9 +160,13 @@ app.post('/slack', (req, res) => {
 
 app.listen(1337)
 
+const dialogflow = require('dialogflow');
+const sessionClient = new dialogflow.SessionsClient();
+
 //send user text to dialogflow
 function DialogFlow(text, id) {
   const sessionId = id;
+
   const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
   console.log("User id", sessionId)
   let request = {
@@ -163,6 +178,7 @@ function DialogFlow(text, id) {
       },
     },
   };
+
   sessionClient.detectIntent(request)
     .then(responses => {
       const result = responses[0].queryResult;
@@ -180,11 +196,25 @@ function DialogFlow(text, id) {
              }
           })
         } else {
-          generateUrl()
+          console.log("TEST BITCHES");
+          console.log("THIS IS SLACK ID ",slackID);
+          User.findOne({slackID:slackID},function(error,user){
+            console.log()
+            if(error){
+              console.log("error finding usertoken")
+            }else if(user){
+              console.log("id found",user)
+              console.log("found user id");
+              makeCalendarAPICall(user.token);
+            }else if(!user){
+              console.log("entered third condition");
+              createAuthUrl();
+            }
+          })
+          }
+        } else {
+          console.log("No intent matched.");
         }
-      } else {
-        console.log(`No intent matched.`);
-      }
     })
     .catch(err => {
       console.error('ERROR:', err);
