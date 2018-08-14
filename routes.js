@@ -1,14 +1,14 @@
 const express = require('express');
-const bodyParser = require('body-parser')
+// const bodyParser = require('body-parser')
 const path = require('path');
-const app = express();
 const fs = require('fs');
 const mongoose = require('mongoose');
 const assert = require('assert')
+const router = express.Router()
 
-app.use(express.static(path.join(__dirname, 'build')));
+router.use(express.static(path.join(__dirname, 'build')));
 
-app.use(bodyParser.json())
+// router.use(bodyParser.json())
 
 if (! fs.existsSync('./env.sh')) {
   throw new Error('env.sh file is missing');
@@ -24,3 +24,9 @@ mongoose.connection.on('error', function() {
   process.exit(1);
 });
 mongoose.connect(process.env.MONGODB_URI);
+
+router.get('/ping', (req, res) => {
+  console.log("pong")
+})
+
+export default router
