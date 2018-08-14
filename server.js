@@ -27,7 +27,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URL
 )
 
-function createAuthUrl(){
+function createAuthUrl(token,time,subject,date){
   console.log("ENTERED CREATE AUTH URL");
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -36,14 +36,14 @@ function createAuthUrl(){
     ]
   })
 
-  rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err,res)=>{
-    if(res){
+  rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err,res) => {
+    if(res) {
       console.log("success")
-    }else{
+      makeCalendarAPICall(token,time,subject,date)
+    } else {
       console.log("failure")
     }
   })
-
 }
 
 // Google API create cal event
@@ -57,7 +57,7 @@ function makeCalendarAPICall(token,time,subject,date) {
 
   oauth2Client.setCredentials(token)
   console.log("TIME CHECK",time);
-  console.loge("DATE",date);
+  console.log("DATE",date);
 
   oauth2Client.on('tokens', (tokens) => {
     if (tokens.refresh_token) {
@@ -73,14 +73,13 @@ function makeCalendarAPICall(token,time,subject,date) {
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
       'summary': subject,
-      'location': '800 Howard St., San Francisco, CA 94103',
       'description': subject,
       'start': {
-        'dateTime': '2018-08-15T02:00:35.462Z',
+        'dateTime': time,
         'timeZone': 'America/Los_Angeles'
       },
       'end': {
-        'dateTime': '2018-08-15T04:00:35.462Z',
+        'dateTime': time,
         'timeZone': 'America/Los_Angeles'
       },
       'attendees': [
@@ -128,10 +127,7 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
-
     // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
-
-    makeCalendarAPICall(token)
     res.send('ok')
   })
 })
@@ -194,27 +190,30 @@ function DialogFlow(text, id) {
              }
           })
         } else {
-          console.log("THIS IS SLACK ID ",slackID);
-          console.log("THIS IS RESULT",result);
+          // console.log("THIS IS SLACK ID ",slackID);
+          // console.log("THIS IS RESULT",result);
+          console.log("fields i want to parse", result.parameters.fields)
           let time=result.parameters.fields.time.stringValue;
+          let parsedTime = time.slice(11, time.length)
           let subject=result.parameters.fields.subject.stringValue;
           let date=result.parameters.fields.date.stringValue;
-
-
+          let parsedDate = date.slice(0,11)
+          let fullTimeDate = parsedDate.concat(parsedTime)
+          console.log(fullTimeDate)
           User.findOne({slackID: slackID})
           .then((user) => {
             if (user) {
-              console.log("USER FOUND", user)
+              // console.log("USER FOUND", user)
               let token={
                access_token:user.accessToken,
                refresh_token:user.refreshToken,
                scope:'https://www.googleapis.com/auth/calendar',
                expiry_date: 1534290086191
              }
-              makeCalendarAPICall(token,time,subject,date);
+              makeCalendarAPICall(token, fullTimeDate, subject, date);
             } else {
               console.log("User not found so create new token");
-              createAuthUrl();
+              createAuthUrl(token, fullTimeDate, subject, date);
             }
           })
           .catch((err) => {
