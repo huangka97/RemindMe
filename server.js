@@ -120,7 +120,6 @@ rtm.on('message', function (event) {
   console.log(event)
   console.log("user message", event.text)
   if(event.previous_message) console.log('@@@@', JSON.stringify(event.previous_message, null,2))
-
   DialogFlow(event.text)
 })
 
@@ -173,15 +172,16 @@ function DialogFlow(text) {
       if (result.intent) {
         console.log(`  Intent: ${result.intent.displayName}`);
         if (result.fulfillmentText !== '') {
-          rtm.sendMessage(result.fulfillmentText, conversationId, function(err, res) {
-           if (res) {
-             console.log("dialog response sent", res)
-           } else {
-             console.log("dialog error, err")
-           }
+          rtm.sendMessage(result.fulfillmentText, conversationId, (err, res) => {
+            if (res) {
+              console.log("dialog response sent", res)
+            } else {
+               console.log("dialog error, err")
+             }
           })
         } else {
-          rtm.sendMessage('Reminder Set! (temp)', conversationId, function(err, res) {
+          
+          rtm.sendMessage('Reminder Set! (temp)', conversationId, (err, res) => {
            if (res) {
              console.log("dialog response sent", res)
            } else {
