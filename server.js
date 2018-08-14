@@ -109,81 +109,71 @@ const web = new WebClient(token);
 //   expiry_date: 1530585071407
 // })
 
+
+//if event has bot = bot else is user 
+
 rtm.start();
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 const conversationId = 'DC7PSNMJN';
 
 rtm.on('message', function (event) {
   console.log(event)
+  console.log("user message", event.text)
   if(event.previous_message) console.log('@@@@', JSON.stringify(event.previous_message, null,2))
   // The RTM client can send simple string messages
   //rtm.sendMessage('Hello there', event.channel, function(err, res) {
   //  console.log(err, res);
   //})
+  // request.queryInput.text.text = event.text
 
-  if(event.bot._id === "BC8NBNYEB") {
-    return (
-      web.chat.postMessage({
-        channel: conversationId,
-        as_user: true,
-        'text': "Hello There!"
-      })
-      .then((res) => {
-        console.log("Message sent", res)
-        console.log("res.ts", res.ts)
-      })
-      .catch(console.error)
-    )
-  }
-
-  // if (event.bot_id === "BC8NBNYEB") return
-  // web.chat.postMessage({
-  //   channel: conversationId,
-  //   as_user: true,
-  //   'text': 'Would you like to schedule a meeting?',
-  //   //response_url: "", webhook
-  //   'attachments': [
-  //     {
-  //       'text': 'Choose a game to play',
-  //       'fallback': 'You are unable to choose a game',
-  //       'callback_id': 'wopr_game',
-  //       'color': '#3AA3E3',
-  //       'attachment_type': 'default',
-  //       'actions': [
-  //         {
-  //           'name': 'game',
-  //           'text': 'Chess',
-  //           'type': 'button',
-  //           'value': 'chess'
-  //         },
-  //         {
-  //           'name': 'game',
-  //           'text': 'Falken\'s Maze',
-  //           'type': 'button',
-  //           'value': 'maze'
-  //         },
-  //         {
-  //           'name': 'game',
-  //           'text': 'Thermonuclear War',
-  //           'style': 'danger',
-  //           'type': 'button',
-  //           'value': 'war',
-  //           'confirm': {
-  //             'title': 'Are you sure?',
-  //             'text': 'Wouldn\'t you prefer a good game of chess?',
-  //             'ok_text': 'Yes',
-  //             'dismiss_text': 'No'
-  //           }
-  //         }
-  //       ]
-  //     }
-  //   ]
-  // })
-  //   .then((res) => {
-  //     // `res` contains information about the posted message
-  //     console.log('Message sent: ', res.ts)
-  //   })
-  //   .catch(console.error)
+  if (event.bot_id === "BC8NBNYEB") return
+  web.chat.postMessage({
+    channel: conversationId,
+    as_user: true,
+    'text': 'Would you like to schedule a meeting?',
+    //response_url: "", webhook
+    'attachments': [
+      {
+        'text': 'Choose a game to play',
+        'fallback': 'You are unable to choose a game',
+        'callback_id': 'wopr_game',
+        'color': '#3AA3E3',
+        'attachment_type': 'default',
+        'actions': [
+          {
+            'name': 'game',
+            'text': 'Chess',
+            'type': 'button',
+            'value': 'chess'
+          },
+          {
+            'name': 'game',
+            'text': 'Falken\'s Maze',
+            'type': 'button',
+            'value': 'maze'
+          },
+          {
+            'name': 'game',
+            'text': 'Thermonuclear War',
+            'style': 'danger',
+            'type': 'button',
+            'value': 'war',
+            'confirm': {
+              'title': 'Are you sure?',
+              'text': 'Wouldn\'t you prefer a good game of chess?',
+              'ok_text': 'Yes',
+              'dismiss_text': 'No'
+            }
+          }
+        ]
+      }
+    ]
+  })
+    .then((res) => {
+      // `res` contains information about the posted message
+      console.log('Message sent: ', res.ts)
+    })
+    .catch(console.error)
 })
 
 // Google OAuth2 callback
@@ -199,6 +189,7 @@ rtm.on('message', function (event) {
 
 // slack Webhook
 app.post('/slack', (req, res) => {
+  console.log("reached /slack route")
   console.log('>>>', JSON.parse(req.body.payload))
   res.end()
 })
@@ -210,11 +201,11 @@ const dialogflow = require('dialogflow');
 const sessionClient = new dialogflow.SessionsClient();
 const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
 
-const request = {
+let request = {
   session: sessionPath,
   queryInput: {
     text: {
-      text: 'Remind me to do chores tomorrow',
+      text: 'remind me',
       languageCode: 'en-US',
     },
   },
