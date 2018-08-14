@@ -40,15 +40,30 @@ const oauth2Client = new google.auth.OAuth2(
 //     'https://www.googleapis.com/auth/calendar'
 //   ]
 // }))
+let rando=0;
+function createAuthUrl(){
+  console.log("ENTERED CREATE AUTH URL");
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: [
+      'https://www.googleapis.com/auth/calendar'
+    ]
+  })
 
-const authUrl = oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  scope: [
-    'https://www.googleapis.com/auth/calendar'
-  ]
-})
 
-console.log(authUrl)
+  rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err,res)=>{
+    if(res){
+      console.log("success")
+    }else{
+      console.log("failure")
+    }
+  })
+
+}
+
+
+
+
 
 // Google API create cal event
 
@@ -124,16 +139,18 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
 
     var newUser = new User({
       accessToken : token.access_token,
-      refreshToken: token.refresh_token,
+      refreshToken: token.refresh_token
+      slackID:
     })
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
 
     // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
-    token1 = token
+
     // console.log("token1 saved", token1)
-    makeCalendarAPICall(token1)
+
+    makeCalendarAPICall(token)
     res.send('ok')
 
   })
@@ -181,6 +198,8 @@ const sessionClient = new dialogflow.SessionsClient();
 //send user text to dialogflow
 function DialogFlow(text, id) {
   const sessionId = id;
+  slackID=id;
+  User.update({ : id }, { $set: {slackID: id }}, callback);
   const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
   console.log("User id", sessionId)
   let request = {
@@ -210,19 +229,28 @@ function DialogFlow(text, id) {
              }
           })
         } else {
-
-          rtm.sendMessage('Reminder Set! (temp)', conversationId, (err, res) => {
-           if (res) {
-             console.log("result ", result)
-             console.log("dialog response sent", res)
-           } else {
-             console.log("dialog error, err")
-           }
+          console.log("TEST BITCHES");
+          console.log("THIS IS RANDOM BITCHES:",rando);
+          User.findOne({slackID:slackID},function(error,id){
+            if(error){
+              console.log("error finding usertoken")
+            }else if(id){
+              console.log("id found", id)
+              console.log("found user id");
+              makeCalendarAPICall(id.token);
+              return;
+            }else if(!token){
+              console.log("entered third condition");
+              createAuthUrl();
+            }
           })
+
+
+          }
+        }else{
+          console.log("No intent matched.");
         }
-      } else {
-        console.log(`  No intent matched.`);
-      }
+
     })
     .catch(err => {
       console.error('ERROR:', err);
