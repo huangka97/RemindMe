@@ -56,6 +56,8 @@ function makeCalendarAPICall(token,time,subject,date) {
   )
 
   oauth2Client.setCredentials(token)
+  console.log("TIME CHECK",time);
+  console.loge("DATE",date);
 
   oauth2Client.on('tokens', (tokens) => {
     if (tokens.refresh_token) {
@@ -78,7 +80,7 @@ function makeCalendarAPICall(token,time,subject,date) {
         'timeZone': 'America/Los_Angeles'
       },
       'end': {
-        'dateTime': date,
+        'dateTime': '2018-08-15T04:00:35.462Z',
         'timeZone': 'America/Los_Angeles'
       },
       'attendees': [
@@ -198,7 +200,7 @@ function DialogFlow(text, id) {
           let subject=result.parameters.fields.subject.stringValue;
           let date=result.parameters.fields.date.stringValue;
 
-          
+
           User.findOne({slackID: slackID})
           .then((user) => {
             if (user) {
