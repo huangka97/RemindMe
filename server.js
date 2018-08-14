@@ -6,6 +6,10 @@ import bodyParser from 'body-parser'
 import axios from 'axios';
 import router from './routes.js'
 import models from "./models/models"
+import mongoose from 'mongoose'
+
+const User = models.User
+
 var slackID;
 const app = express()
 var token1;
@@ -67,67 +71,68 @@ function makeCalendarAPICall(token) {
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
 
-  calendar.events.insert({
-    calendarId: 'primary', // Go to setting on your calendar to get Id
-    'resource': {
-      'summary': 'Google I/O 2015',
-      'location': '800 Howard St., San Francisco, CA 94103',
-      'description': 'A chance to hear more about Google\'s developer products.',
-      'start': {
-        'dateTime': '2018-08-15T02:00:35.462Z',
-        'timeZone': 'America/Los_Angeles'
-      },
-      'end': {
-        'dateTime': '2018-08-16T02:10:35.462Z',
-        'timeZone': 'America/Los_Angeles'
-      },
-      'attendees': [
-        {'email': 'tchang2017@example.com'},
-      ]
-    }
-  }, (err, {data}) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    console.log(data)
-  })
-  return;
-
-
-  // calendar.events.list({
+  // calendar.events.insert({
   //   calendarId: 'primary', // Go to setting on your calendar to get Id
-  //   timeMin: (new Date()).toISOString(),
-  //   maxResults: 10,
-  //   singleEvents: true,
-  //   orderBy: 'startTime',
+  //   'resource': {
+  //     'summary': 'Google I/O 2015',
+  //     'location': '800 Howard St., San Francisco, CA 94103',
+  //     'description': 'A chance to hear more about Google\'s developer products.',
+  //     'start': {
+  //       'dateTime': '2018-08-15T02:00:35.462Z',
+  //       'timeZone': 'America/Los_Angeles'
+  //     },
+  //     'end': {
+  //       'dateTime': '2018-08-16T02:10:35.462Z',
+  //       'timeZone': 'America/Los_Angeles'
+  //     },
+  //     'attendees': [
+  //       {'email': 'tchang2017@example.com'},
+  //     ]
+  //   }
   // }, (err, {data}) => {
   //   if (err) return console.log('The API returned an error: ' + err);
-  //   const events = data.items;
-  //   if (events.length) {
-  //     console.log('Upcoming 10 events:');
-  //     events.map((event, i) => {
-  //       const start = event.start.dateTime || event.start.date;
-  //       console.log(`${start} - ${event.summary}`);
-  //     });
-  //   } else {
-  //     console.log('No upcoming events found.');
-  //   }
-  // });
+  //   console.log(data)
+  // })
+  // return;
+
+
+  calendar.events.list({
+    calendarId: 'primary', // Go to setting on your calendar to get Id
+    timeMin: (new Date()).toISOString(),
+    maxResults: 10,
+    singleEvents: true,
+    orderBy: 'startTime',
+  }, (err, {data}) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const events = data.items;
+    if (events.length) {
+      console.log('Upcoming 10 events:');
+      events.map((event, i) => {
+        const start = event.start.dateTime || event.start.date;
+        console.log(`${start} - ${event.summary}`);
+      });
+    } else {
+      console.log('No upcoming events found.');
+    }
+  });
 }
 
 // Google OAuth2 callback
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
-    var models.User=new User({
-      accessToken:token
-    }),
-    models.User.save(function(err){
-      if(err){
-        console.log("error: could not save")
-      }
+
+    var newUser = new User({
+      accessToken : token.access_token,
+      refreshToken: token.refresh_token,
     })
-    console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
+    newUser.save()
+    .then((saved) => console.log("user token saved", saved))
+    .catch((err) => console.log("user not saved", err))
+
+    // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
     token1 = token
-    console.log("token1 saved", token1)
+    // console.log("token1 saved", token1)
     makeCalendarAPICall(token1)
     res.send('ok')
 
