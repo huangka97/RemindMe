@@ -10,7 +10,7 @@ var TaskSchema=new Schema({
     type:String,
     required:true
   },
-  eventId:{
+  calendarEventId:{
     type:String,
   },
   requesterId:{
@@ -56,12 +56,45 @@ var MeetingSchema=new Schema({
 });
 
 var UserSchema=new Schema({
-  slackID:String,
-  auth_id:String,
-  token:Object,
-  email:String,
-  pendingInvites:[]
+  accessToken:{
+    type:String,
+  },
+  refreshToken:{
+    type:String,
+  },
+  googleProfileId:{
+    type:String,
+  },
+  defaultMeetingTime:{
+    type:String,
+  },
+  slackID:{
+    type:String,
+  },
+  slackEmail:{
+    type:String,
+  },
+  slackDMIds:{
+    type:String,
+  }
+});
+
+var InviteSchema=new Schema({
+  eventId:{
+    type:String,
+  },
+  inviteeId:{
+    type:String,
+  },
+  requesterId:{
+    type:String,
+  },
+  status:{
+    type:String,
+  }
 })
 
 var Task=mongoose.model("Task",TaskSchema);
 var Meeting=mongoose.model("Model",MeetingSchema);
+var User=mongoose.model("User",UserSchema);
+var Invite=mongoose.model("Invite",InviteSchema);
