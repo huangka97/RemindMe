@@ -116,6 +116,7 @@ function makeCalendarAPICall(token) {
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
+    //HERE IS WHERE YOU LOOK AT TOKEN
     console.log("user token", token)
     var newUser = new User({
       accessToken : token.access_token,
@@ -195,9 +196,17 @@ function DialogFlow(text, id) {
           User.findOne({slackID: slackID})
           .then((user) => {
             if (user) {
-              console.log("user found", user)
+              console.log("USER FOUND", user)
+              let token={
+               access_token:user.accessToken,
+               refresh_token:user.refreshToken,
+               scope:'https://www.googleapis.com/auth/calendar',
+               expiry_date: 1534290086191 
 
-              makeCalendarAPICall(user.token)
+             }
+
+
+              makeCalendarAPICall(token)
             } else {
               console.log("User not found so create new token");
               createAuthUrl();
