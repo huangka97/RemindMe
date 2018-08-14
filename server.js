@@ -27,7 +27,6 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URL
 )
 
-let rando=0;
 function createAuthUrl(){
   console.log("ENTERED CREATE AUTH URL");
   const authUrl = oauth2Client.generateAuthUrl({
@@ -92,7 +91,6 @@ function makeCalendarAPICall(token) {
   // })
   // return;
 
-
   calendar.events.list({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     timeMin: (new Date()).toISOString(),
@@ -118,7 +116,7 @@ function makeCalendarAPICall(token) {
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
-    console.log("TEST")
+    console.log("user token", token)
     var newUser = new User({
       accessToken : token.access_token,
       refreshToken: token.refresh_token,
@@ -129,8 +127,6 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     .catch((err) => console.log("user not saved", err))
 
     // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
-
-    // console.log("token1 saved", token1)
 
     makeCalendarAPICall(token)
     res.send('ok')
@@ -166,9 +162,8 @@ const sessionClient = new dialogflow.SessionsClient();
 //send user text to dialogflow
 function DialogFlow(text, id) {
   const sessionId = id;
-
   const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
-  console.log("User id", sessionId)
+
   let request = {
     session: sessionPath,
     queryInput: {
@@ -196,20 +191,20 @@ function DialogFlow(text, id) {
              }
           })
         } else {
-          console.log("TEST BITCHES");
           console.log("THIS IS SLACK ID ",slackID);
-          User.findOne({slackID:slackID},function(error,user){
-            console.log()
-            if(error){
-              console.log("error finding usertoken")
-            }else if(user){
-              console.log("id found",user)
-              console.log("found user id");
-              makeCalendarAPICall(user.token);
-            }else if(!user){
-              console.log("entered third condition");
+          User.findOne({slackID: slackID})
+          .then((user) => {
+            if (user) {
+              console.log("user found", user)
+
+              makeCalendarAPICall(user.token)
+            } else {
+              console.log("User not found so create new token");
               createAuthUrl();
             }
+          })
+          .catch((err) => {
+            console.log("user not found")
           })
           }
         } else {
