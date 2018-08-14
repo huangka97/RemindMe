@@ -48,7 +48,7 @@ function createAuthUrl(){
 
 // Google API create cal event
 
-function makeCalendarAPICall(token) {
+function makeCalendarAPICall(token,time,subject,date) {
   const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
@@ -67,29 +67,29 @@ function makeCalendarAPICall(token) {
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
 
-  // calendar.events.insert({
-  //   calendarId: 'primary', // Go to setting on your calendar to get Id
-  //   'resource': {
-  //     'summary': 'Google I/O 2015',
-  //     'location': '800 Howard St., San Francisco, CA 94103',
-  //     'description': 'A chance to hear more about Google\'s developer products.',
-  //     'start': {
-  //       'dateTime': '2018-08-15T02:00:35.462Z',
-  //       'timeZone': 'America/Los_Angeles'
-  //     },
-  //     'end': {
-  //       'dateTime': '2018-08-16T02:10:35.462Z',
-  //       'timeZone': 'America/Los_Angeles'
-  //     },
-  //     'attendees': [
-  //       {'email': 'tchang2017@example.com'},
-  //     ]
-  //   }
-  // }, (err, {data}) => {
-  //   if (err) return console.log('The API returned an error: ' + err);
-  //   console.log(data)
-  // })
-  // return;
+  calendar.events.insert({
+    calendarId: 'primary', // Go to setting on your calendar to get Id
+    'resource': {
+      'summary': subject,
+      'location': '800 Howard St., San Francisco, CA 94103',
+      'description': subject,
+      'start': {
+        'dateTime': '2018-08-15T02:00:35.462Z',
+        'timeZone': 'America/Los_Angeles'
+      },
+      'end': {
+        'dateTime': date,
+        'timeZone': 'America/Los_Angeles'
+      },
+      'attendees': [
+        {'email': 'tchang2017@example.com'},
+      ]
+    }
+  }, (err, {data}) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    console.log(data)
+  })
+  return;
 
   calendar.events.list({
     calendarId: 'primary', // Go to setting on your calendar to get Id
@@ -193,6 +193,12 @@ function DialogFlow(text, id) {
           })
         } else {
           console.log("THIS IS SLACK ID ",slackID);
+          console.log("THIS IS RESULT",result);
+          let time=result.parameters.fields.time.stringValue;
+          let subject=result.parameters.fields.subject.stringValue;
+          let date=result.parameters.fields.date.stringValue;
+
+          
           User.findOne({slackID: slackID})
           .then((user) => {
             if (user) {
@@ -201,12 +207,9 @@ function DialogFlow(text, id) {
                access_token:user.accessToken,
                refresh_token:user.refreshToken,
                scope:'https://www.googleapis.com/auth/calendar',
-               expiry_date: 1534290086191 
-
+               expiry_date: 1534290086191
              }
-
-
-              makeCalendarAPICall(token)
+              makeCalendarAPICall(token,time,subject,date);
             } else {
               console.log("User not found so create new token");
               createAuthUrl();
