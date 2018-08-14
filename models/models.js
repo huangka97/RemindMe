@@ -98,3 +98,11 @@ var Task=mongoose.model("Task",TaskSchema);
 var Meeting=mongoose.model("Model",MeetingSchema);
 var User=mongoose.model("User",UserSchema);
 var Invite=mongoose.model("Invite",InviteSchema);
+
+
+modules.exports={
+  Task:Task,
+  Meeting:Meeting,
+  User:User,
+  Invite:Invite
+}

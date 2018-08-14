@@ -5,6 +5,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import axios from 'axios';
 import router from './routes.js'
+import models from "./models/models"
 var slackID;
 const app = express()
 var token1;
@@ -116,7 +117,14 @@ function makeCalendarAPICall(token) {
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
-    //store token in mongo
+    var models.User=new User({
+      accessToken:token
+    }),
+    models.User.save(function(err){
+      if(err){
+        console.log("error: could not save")
+      }
+    })
     console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
     token1 = token
     console.log("token1 saved", token1)
