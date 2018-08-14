@@ -110,70 +110,18 @@ const web = new WebClient(token);
 // })
 
 
-//if event has bot = bot else is user 
+//if event has bot = bot else is user
 
 rtm.start();
-// This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
+
 const conversationId = 'DC7PSNMJN';
 
 rtm.on('message', function (event) {
   console.log(event)
   console.log("user message", event.text)
   if(event.previous_message) console.log('@@@@', JSON.stringify(event.previous_message, null,2))
-  // The RTM client can send simple string messages
-  //rtm.sendMessage('Hello there', event.channel, function(err, res) {
-  //  console.log(err, res);
-  //})
-  // request.queryInput.text.text = event.text
 
-  if (event.bot_id === "BC8NBNYEB") return
-  web.chat.postMessage({
-    channel: conversationId,
-    as_user: true,
-    'text': 'Would you like to schedule a meeting?',
-    //response_url: "", webhook
-    'attachments': [
-      {
-        'text': 'Choose a game to play',
-        'fallback': 'You are unable to choose a game',
-        'callback_id': 'wopr_game',
-        'color': '#3AA3E3',
-        'attachment_type': 'default',
-        'actions': [
-          {
-            'name': 'game',
-            'text': 'Chess',
-            'type': 'button',
-            'value': 'chess'
-          },
-          {
-            'name': 'game',
-            'text': 'Falken\'s Maze',
-            'type': 'button',
-            'value': 'maze'
-          },
-          {
-            'name': 'game',
-            'text': 'Thermonuclear War',
-            'style': 'danger',
-            'type': 'button',
-            'value': 'war',
-            'confirm': {
-              'title': 'Are you sure?',
-              'text': 'Wouldn\'t you prefer a good game of chess?',
-              'ok_text': 'Yes',
-              'dismiss_text': 'No'
-            }
-          }
-        ]
-      }
-    ]
-  })
-    .then((res) => {
-      // `res` contains information about the posted message
-      console.log('Message sent: ', res.ts)
-    })
-    .catch(console.error)
+  DialogFlow(event.text)
 })
 
 // Google OAuth2 callback
@@ -196,33 +144,56 @@ app.post('/slack', (req, res) => {
 
 app.listen(1337)
 
+
 const sessionId = 'karlTim-chat-1';
 const dialogflow = require('dialogflow');
 const sessionClient = new dialogflow.SessionsClient();
 const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
 
-let request = {
-  session: sessionPath,
-  queryInput: {
-    text: {
-      text: 'remind me',
-      languageCode: 'en-US',
-    },
-  },
-};
 
-sessionClient.detectIntent(request)
-  .then(responses => {
-    const result = responses[0].queryResult;
-    console.log('Detected intent', result.parameters.fields);
-    console.log(`  Query: ${result.queryText}`);
-    console.log(`  Response: ${result.fulfillmentText}`);
-    if (result.intent) {
-      console.log(`  Intent: ${result.intent.displayName}`);
-    } else {
-      console.log(`  No intent matched.`);
-    }
-  })
-  .catch(err => {
-    console.error('ERROR:', err);
-  });
+//send user text to dialogflow
+function DialogFlow(text) {
+
+  let request = {
+    session: sessionPath,
+    queryInput: {
+      text: {
+        text: text,
+        languageCode: 'en-US',
+      },
+    },
+  };
+
+  sessionClient.detectIntent(request)
+    .then(responses => {
+      const result = responses[0].queryResult;
+      console.log('Detected intent', result.parameters.fields);
+      console.log(`  Query: ${result.queryText}`);
+      console.log(`  Response: ${result.fulfillmentText}`);
+      if (result.intent) {
+        console.log(`  Intent: ${result.intent.displayName}`);
+        if (result.fulfillmentText !== '') {
+          rtm.sendMessage(result.fulfillmentText, conversationId, function(err, res) {
+           if (res) {
+             console.log("dialog response sent", res)
+           } else {
+             console.log("dialog error, err")
+           }
+          })
+        } else {
+          rtm.sendMessage('Reminder Set! (temp)', conversationId, function(err, res) {
+           if (res) {
+             console.log("dialog response sent", res)
+           } else {
+             console.log("dialog error, err")
+           }
+          })
+        }
+      } else {
+        console.log(`  No intent matched.`);
+      }
+    })
+    .catch(err => {
+      console.error('ERROR:', err);
+    });
+}
