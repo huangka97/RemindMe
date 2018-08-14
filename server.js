@@ -136,11 +136,11 @@ function makeCalendarAPICall(token) {
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
-
+    console.log("TEST")
     var newUser = new User({
       accessToken : token.access_token,
-      refreshToken: token.refresh_token
-      slackID:
+      refreshToken: token.refresh_token,
+      slackID:slackID
     })
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
@@ -173,6 +173,7 @@ let conversationId;
 rtm.on('message', function (event) {
   conversationId = event.channel
   console.log(event)
+  slackID=event.user;
   if(event.previous_message) console.log('@@@@', JSON.stringify(event.previous_message, null,2))
   DialogFlow(event.text, event.user)
 })
@@ -198,8 +199,7 @@ const sessionClient = new dialogflow.SessionsClient();
 //send user text to dialogflow
 function DialogFlow(text, id) {
   const sessionId = id;
-  slackID=id;
-  User.update({ : id }, { $set: {slackID: id }}, callback);
+
   const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
   console.log("User id", sessionId)
   let request = {
@@ -230,16 +230,16 @@ function DialogFlow(text, id) {
           })
         } else {
           console.log("TEST BITCHES");
-          console.log("THIS IS RANDOM BITCHES:",rando);
-          User.findOne({slackID:slackID},function(error,id){
+          console.log("THIS IS SLACK ID ",slackID);
+          User.findOne({slackID:slackID},function(error,user){
+            console.log()
             if(error){
               console.log("error finding usertoken")
-            }else if(id){
-              console.log("id found", id)
+            }else if(user){
+              console.log("id found",user)
               console.log("found user id");
-              makeCalendarAPICall(id.token);
-              return;
-            }else if(!token){
+              makeCalendarAPICall(user.token);
+            }else if(!user){
               console.log("entered third condition");
               createAuthUrl();
             }
