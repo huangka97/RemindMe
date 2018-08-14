@@ -122,14 +122,11 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
-
     // console.log('token', token, 'req.query:', req.query) // req.query.state <- meta-data
     // console.log("token1 saved", token1)
     makeCalendarAPICall(token)
     res.send('ok')
-
   })
-
 })
 
 rtm.start();
@@ -183,7 +180,7 @@ function DialogFlow(text, id) {
              }
           })
         } else {
-          generateUrl(id)
+          generateUrl()
         }
       } else {
         console.log(`No intent matched.`);
