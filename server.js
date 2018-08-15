@@ -151,18 +151,16 @@ let conversationId;
 
 rtm.on('message', function(event) {
   conversationId = event.channel
-
   slackID = event.user;
   console.log("THIS IS EVENT " ,event);
   console.log("THIS IS COMPARISON TEST FAM: ",event.bot_id,event.user);
   if (event.previous_message)
     console.log('@@@@', JSON.stringify(event.previous_message, null, 2))
-  if(event.bot_id){
+  if (event.bot_id) {
     return;
-  }else{
+  } else {
     DialogFlow(event.text, event.user)
   }
-
 })
 
 // slack Webhook
@@ -284,10 +282,10 @@ function DialogFlow(text, id) {
           console.log("user not found: this is error fam ", err)
         })
       }
-    } else if(result.intent.displayName==="schedule:add") {
+    } else if (result.intent.displayName === "schedule:add") {
       console.log("THIS SHIT WORKS BITCHES");
 
-    }else{
+    } else {
       console.log("No intent matched.");
     }
   }).catch(err => {
