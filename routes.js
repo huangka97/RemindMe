@@ -7,8 +7,7 @@ const mongoose = require('mongoose');
 const assert = require('assert')
 const router = express.Router()
 
-router.use(express.static(path.join(__dirname, 'build')));
-
+// router.use(express.static(path.join(__dirname, 'build')));
 // router.use(bodyParser.json())
 
 if (! fs.existsSync('./env.sh')) {
@@ -26,30 +25,35 @@ mongoose.connection.on('error', function() {
 });
 mongoose.connect(process.env.MONGODB_URI);
 
-router.get('/ping', (req, res) => {
-  console.log("pong")
-})
+export default function(rtm, web) {
+  router.get('/ping', (req, res) => {
+    console.log("pong")
+  })
 
-router.post('/buttonPostConfirm', (req, res) => {
-  console.log("req payload", req.body.payload)
-  let conversationId = req.body.payload.channel.id
-  if (req.body.payload.actions.name === "yes") {
-    rtm.sendMessage("Your reminder has been created in the calender!", conversationId, (err, res) => {
-      if (res) {
-        console.log("reminder saved post confirm", res)
-      } else {
-        console.log("cofirm button err", err)
-      }
-    })
-  } else {
-    rtm.sendMessage("Reminder canceled", conversationId, (err, res) => {
-      if (res) {
-        console.log("reminder canceled hit res", res)
-      } else {
-        console.log("error canceling reminder", err)
-      }
-    })
-  }
-})
-
-export default router
+  router.post('/buttonPostConfirm', (req, res) => {
+    let payload = JSON.parse(req.body.payload)
+    console.log("req payload", payload)
+    console.log("payload actions", payload.actions)
+    let conversationId = payload.channel.id
+    if (payload.actions[0].name === "yes") {
+      console.log("made it here name = yes")
+      //make calender
+      rtm.sendMessage("Your reminder has been created in the calender!", conversationId, (err, res) => {
+        if (res) {
+          console.log("reminder saved post confirm", res)
+        } else {
+          console.log("cofirm button err", err)
+        }
+      })
+    } else {
+      rtm.sendMessage("Reminder canceled", conversationId, (err, res) => {
+        if (res) {
+          console.log("reminder canceled hit res", res)
+        } else {
+          console.log("error canceling reminder", err)
+        }
+      })
+    }
+  })
+  return router
+}

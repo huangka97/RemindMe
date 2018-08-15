@@ -3,22 +3,43 @@ import {google} from 'googleapis'
 import express from 'express'
 import bodyParser from 'body-parser'
 import axios from 'axios';
-import router from './routes.js'
 import models from "./models/models"
 import mongoose from 'mongoose'
-
+const path = require('path');
+const fs = require('fs');
+const assert = require('assert')
 const User = models.User
+
 let slackID;
+let calenderData = []
 const app = express()
-
-app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
-app.use('/', router)
-
-// An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
 const token = process.env.SLACK_TOKEN;
 const rtm = new RTMClient(token);
 const web = new WebClient(token);
+
+app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.json())
+// app.use('/', router(rtm, web))
+
+//mongo
+if (! fs.existsSync('./env.sh')) {
+  throw new Error('env.sh file is missing');
+}
+if (! process.env.MONGODB_URI) {
+  throw new Error("MONGODB_URI is not in the environmental variables. Try running 'source env.sh'");
+}
+mongoose.connection.on('connected', function() {
+  console.log('Success: connected to MongoDb!');
+});
+mongoose.connection.on('error', function() {
+  console.log('Error connecting to MongoDb. Check MONGODB_URI in env.sh');
+  process.exit(1);
+});
+mongoose.connect(process.env.MONGODB_URI);
+
+
+// An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
+
 
 // https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
@@ -56,33 +77,33 @@ function makeCalendarAPICall(token, time, subject, date) {
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
   console.log('THIS IS TIME FAM BAM: ', time);
-  if(isMeeting){
-    calendar.events.insert({
-      calendarId: 'primary', // Go to setting on your calendar to get Id
-      'resource': {
-        'summary': subject,
-        'description': subject,
-        'start': {
-          'dateTime': time,
-          'timeZone': 'America/Los_Angeles'
-        },
-        'end': {
-          'dateTime': endTime,
-          'timeZone': 'America/Los_Angeles'
-        },
-        'attendees': [
-          {
-            'email': 'tchang2017@example.com'
-          }
-        ]
-      }
-    }, (err, {data}) => {
-      if (err)
-        return console.log('The API returned an error: ' + err);
-      console.log(data)
-    })
-  }
-  else{
+  // if(isMeeting){
+  //   calendar.events.insert({
+  //     calendarId: 'primary', // Go to setting on your calendar to get Id
+  //     'resource': {
+  //       'summary': subject,
+  //       'description': subject,
+  //       'start': {
+  //         'dateTime': time,
+  //         'timeZone': 'America/Los_Angeles'
+  //       },
+  //       'end': {
+  //         'dateTime': endTime,
+  //         'timeZone': 'America/Los_Angeles'
+  //       },
+  //       'attendees': [
+  //         {
+  //           'email': 'tchang2017@example.com'
+  //         }
+  //       ]
+  //     }
+  //   }, (err, {data}) => {
+  //     if (err)
+  //       return console.log('The API returned an error: ' + err);
+  //     console.log(data)
+  //   })
+  // }
+  // else{
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
@@ -106,7 +127,8 @@ function makeCalendarAPICall(token, time, subject, date) {
     if (err)
       return console.log('The API returned an error: ' + err);
     console.log(data)
-  })}
+  })
+// }
   return;
 
   // calendar.events.list({
@@ -192,12 +214,6 @@ function DialogFlow(text, id) {
 
   sessionClient.detectIntent(request).then(responses => {
     const result = responses[0].queryResult;
-    // console.log('Detected intent', result.parameters.fields);
-    // console.log(`  Query: ${result.queryText}`);
-    // console.log(`  Response: ${result.fulfillmentText}`);
-    // console.log("THIS IS RESULT FAM: ", result);
-    // console.log("THIS IS RESULT FAM intent: ", result.intent);
-
     if (result.intent) {
       //THIS IS WHERE WE CAN DETECT WHAT THE INTENT IS
       console.log(`  Intent: ${result.intent.displayName}`);
@@ -210,8 +226,6 @@ function DialogFlow(text, id) {
           }
         })
       } else if (result.intent.displayName == 'reminder:add') {
-        // console.log("THIS IS SLACK ID ",slackID);
-        // console.log("THIS IS RESULT",result);
         console.log("fields i want to parse", result.parameters.fields)
         let time = result.parameters.fields.time.stringValue;
         let parsedTime = time.slice(11, time.length)
@@ -219,23 +233,17 @@ function DialogFlow(text, id) {
         let date = result.parameters.fields.date.stringValue;
         console.log("THIS IS THE DATE OBJECT: ", new Date(date));
         let parsedDate = date.slice(0, 11)
-        // let dateObject=new Date(date);
-        // dateObject.setHours(dateObject.getHours()+1);
         let fullTimeDate = parsedDate.concat(parsedTime)
-        // let fullTimeDate=dateObject;
-        // console.log(result);
-        // console.log(fullTime)
         console.log("THIS IS FULL TIME DATE FAM: ", fullTimeDate)
         User.findOne({slackID: slackID}).then((user) => {
           if (user) {
-            // console.log("USER FOUND", user)
             let token = {
               access_token: user.accessToken,
               refresh_token: user.refreshToken,
               scope: 'https://www.googleapis.com/auth/calendar',
               expiry_date: 1534290086191
             }
-
+            calenderData.push(token, fullTimeDate, subject, date)
             console.log("THIS IS CHANNEL: ", conversationId);
             web.chat.postMessage({
               channel: conversationId,
@@ -273,7 +281,6 @@ function DialogFlow(text, id) {
             }).then((res) => {
               console.log("THIS IS RES", res);
             }).catch((err) => console.log("ERROR FAM: ", err));
-
           } else {
             console.log("User not found so create new token");
             createAuthUrl(token, fullTimeDate, subject, date);
@@ -284,7 +291,6 @@ function DialogFlow(text, id) {
       }
     } else if (result.intent.displayName === "schedule:add") {
       console.log("THIS SHIT WORKS BITCHES");
-
     } else {
       console.log("No intent matched.");
     }
@@ -292,3 +298,35 @@ function DialogFlow(text, id) {
     console.error('ERROR:', err);
   });
 }
+
+//routes
+app.get('/ping', (req, res) => {
+  console.log("pong")
+})
+
+app.post('/buttonPostConfirm', (req, res) => {
+  let payload = JSON.parse(req.body.payload)
+  console.log("req payload", payload)
+  console.log("payload actions", payload.actions)
+  let conversationId = payload.channel.id
+  if (payload.actions[0].name === "yes") {
+    //somehow call create calender fx, need all data passed to it though
+    console.log("calender data arr", calenderData)
+    makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3])
+    rtm.sendMessage("Your reminder has been created in the calender!", conversationId, (err, res) => {
+      if (res) {
+        console.log("reminder saved post confirm", res)
+      } else {
+        console.log("cofirm button err", err)
+      }
+    })
+  } else {
+    rtm.sendMessage("Reminder canceled", conversationId, (err, res) => {
+      if (res) {
+        console.log("reminder canceled hit res", res)
+      } else {
+        console.log("error canceling reminder", err)
+      }
+    })
+  }
+})
