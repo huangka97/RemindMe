@@ -68,7 +68,7 @@ function makeCalendarAPICall(token,time,subject,date) {
   });
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
-
+  console.log('THIS IS TIME FAM BAM: ',time);
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
@@ -179,7 +179,11 @@ function DialogFlow(text, id) {
       // console.log('Detected intent', result.parameters.fields);
       // console.log(`  Query: ${result.queryText}`);
       // console.log(`  Response: ${result.fulfillmentText}`);
+      // console.log("THIS IS RESULT FAM: ", result);
+      // console.log("THIS IS RESULT FAM intent: ", result.intent);
+
       if (result.intent) {
+        //THIS IS WHERE WE CAN DETECT WHAT THE INTENT IS
         console.log(`  Intent: ${result.intent.displayName}`);
         if (result.fulfillmentText !== '') {
           rtm.sendMessage(result.fulfillmentText, conversationId, (err, res) => {
@@ -197,9 +201,15 @@ function DialogFlow(text, id) {
           let parsedTime = time.slice(11, time.length)
           let subject=result.parameters.fields.subject.stringValue;
           let date=result.parameters.fields.date.stringValue;
+          console.log("THIS IS THE DATE OBJECT: ",new Date(date));
           let parsedDate = date.slice(0,11)
+          // let dateObject=new Date(date);
+          // dateObject.setHours(dateObject.getHours()+1);
           let fullTimeDate = parsedDate.concat(parsedTime)
-          console.log(fullTimeDate)
+          // let fullTimeDate=dateObject;
+          // console.log(result);
+          // console.log(fullTime)
+          console.log("THIS IS FULL TIME DATE FAM: ",fullTimeDate)
           User.findOne({slackID: slackID})
           .then((user) => {
             if (user) {
@@ -210,14 +220,57 @@ function DialogFlow(text, id) {
                scope:'https://www.googleapis.com/auth/calendar',
                expiry_date: 1534290086191
              }
-              makeCalendarAPICall(token, fullTimeDate, subject, date);
+
+             console.log("THIS IS CHANNEL: ",conversationId);
+             web.chat.postMessage({
+               channel: conversationId,
+               text: 'Set Reminder',
+               "attachments":[
+                 {
+                   "fields":[
+                     {
+                       "title":"Subject",
+                       "value":subject
+                     },
+                     {
+                       "title":"Date",
+                       "value":date,
+                     }
+                   ],
+                   "fallback":"You are unable to choose a game",
+                   "callback_id":"wopr game",
+                   "color":"#3AA3E3",
+                   "attachment_type": "default",
+                   "actions":[
+                     {
+                     "name": "yes",
+                     "text": "Confirm",
+                     "type": "button",
+                     "value": "true"
+                   },
+                   {
+                     "name": "no",
+                     "text": "Cancel",
+                     "type": "button",
+                     "value": "false"
+                   }
+                   ]
+                 }
+               ]
+             })
+               .then((res) => {
+                 console.log("THIS IS RES", res);
+               })
+               .catch((err)=>console.log("ERROR FAM: ",err));
+
+
             } else {
               console.log("User not found so create new token");
               createAuthUrl(token, fullTimeDate, subject, date);
             }
           })
           .catch((err) => {
-            console.log("user not found")
+            console.log("user not found: this is error fam ",err)
           })
           }
         } else {
