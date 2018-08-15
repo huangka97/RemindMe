@@ -29,4 +29,10 @@ router.get('/ping', (req, res) => {
   console.log("pong")
 })
 
+router.post('/buttonPostConfirm', (req, res) => {
+  console.log("button pressed", req.body)
+  console.log("req payload", req.body.payload)
+
+})
+
 export default router
