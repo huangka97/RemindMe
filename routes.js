@@ -1,5 +1,6 @@
 const express = require('express');
 // const bodyParser = require('body-parser')
+import {RTMClient, WebClient} from '@slack/client'
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
@@ -30,9 +31,25 @@ router.get('/ping', (req, res) => {
 })
 
 router.post('/buttonPostConfirm', (req, res) => {
-  console.log("button pressed", req.body)
   console.log("req payload", req.body.payload)
-
+  let conversationId = req.body.payload.channel.id
+  if (req.body.payload.actions.name === "yes") {
+    rtm.sendMessage("Your reminder has been created in the calender!", conversationId, (err, res) => {
+      if (res) {
+        console.log("reminder saved post confirm", res)
+      } else {
+        console.log("cofirm button err", err)
+      }
+    })
+  } else {
+    rtm.sendMessage("Reminder canceled", conversationId, (err, res) => {
+      if (res) {
+        console.log("reminder canceled hit res", res)
+      } else {
+        console.log("error canceling reminder", err)
+      }
+    })
+  }
 })
 
 export default router
