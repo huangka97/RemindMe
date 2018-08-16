@@ -11,6 +11,7 @@ const assert = require('assert')
 const User = models.User
 
 let slackID;
+let isMeeting=false;
 let calenderData = []
 const app = express()
 const token = process.env.SLACK_TOKEN;
@@ -60,7 +61,7 @@ function createAuthUrl(token, time, subject, date) {
 
 // Google API create cal event
 
-function makeCalendarAPICall(token, time, subject, date) {
+function makeCalendarAPICall(token, time, subject, date,endTime,isMeeting) {
   const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
 
   oauth2Client.setCredentials(token)
@@ -227,7 +228,7 @@ function DialogFlow(text, id) {
           }
         })
       } else if (result.intent.displayName == 'reminder:add') {
-        let isMeeting=false;
+
         console.log("IF STATEMENT 2");
         console.log("fields i want to parse", result.parameters.fields)
         let time = result.parameters.fields.time.stringValue;
@@ -246,7 +247,7 @@ function DialogFlow(text, id) {
               scope: 'https://www.googleapis.com/auth/calendar',
               expiry_date: 1534290086191
             }
-            calenderData.push(token, fullTimeDate, subject, date)
+            calenderData.push(token, fullTimeDate, subject, date,isMeeting)
             console.log("THIS IS CHANNEL: ", conversationId);
             web.chat.postMessage({
               channel: conversationId,
@@ -293,6 +294,7 @@ function DialogFlow(text, id) {
         })
       }
       else if (result.intent.displayName == "schedule:add") {
+      isMeeting=true;
       console.log("IN RESULT SCHEDULE:ADD");
       User.findOne({slackID: slackID}).then((user) => {
         console.log("IN USER.FIND ONE")
@@ -304,6 +306,7 @@ function DialogFlow(text, id) {
             scope: 'https://www.googleapis.com/auth/calendar',
             expiry_date: 1534290086191
           }
+          console.log("THIS IS RESULT TESTING ")
           // let starttime = result.parameters.fields.time.stringValue;
           // let endtime=result.parameters
           // let parsedTime = time.slice(11, time.length)
@@ -312,7 +315,7 @@ function DialogFlow(text, id) {
           // console.log("THIS IS THE DATE OBJECT: ", new Date(date));
           // let parsedDate = date.slice(0, 11)
           // let fullTimeDate = parsedDate.concat(parsedTime)
-          // calenderData.push(token, fullTimeDate, subject, date)
+          // calenderData.push(token, fullTimeDate, subject, date,isMeeting)
           // console.log("THIS IS CHANNEL: ", conversationId);
           console.log("THIS IS RESULTS FOR MEETING: ",result);
           web.chat.postMessage({
@@ -323,10 +326,10 @@ function DialogFlow(text, id) {
                 "fields": [
                   {
                     "title": "Subject",
-                    "value": "TEST"
+                    "value": subject
                   }, {
                     "title": "Date",
-                    "value": "TEST"
+                    "value":
                   }
                 ],
                 "fallback": "You are unable to choose a game",
