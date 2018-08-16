@@ -61,7 +61,7 @@ function createAuthUrl(token, time, subject, date) {
 
 // Google API create cal event
 
-function makeCalendarAPICall(token, time, subject, date,endTime,isMeeting) {
+function makeCalendarAPICall(token, startfullTimeDate, subject, date,isMeeting,endfullTimeDate) {
   const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
 
   oauth2Client.setCredentials(token)
@@ -78,44 +78,44 @@ function makeCalendarAPICall(token, time, subject, date,endTime,isMeeting) {
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
   console.log('THIS IS TIME FAM BAM: ', time);
-  // if(isMeeting){
-  //   calendar.events.insert({
-  //     calendarId: 'primary', // Go to setting on your calendar to get Id
-  //     'resource': {
-  //       'summary': subject,
-  //       'description': subject,
-  //       'start': {
-  //         'dateTime': time,
-  //         'timeZone': 'America/Los_Angeles'
-  //       },
-  //       'end': {
-  //         'dateTime': endTime,
-  //         'timeZone': 'America/Los_Angeles'
-  //       },
-  //       'attendees': [
-  //         {
-  //           'email': 'tchang2017@example.com'
-  //         }
-  //       ]
-  //     }
-  //   }, (err, {data}) => {
-  //     if (err)
-  //       return console.log('The API returned an error: ' + err);
-  //     console.log(data)
-  //   })
-  // }
-  // else{
+  if(isMeeting){
+    calendar.events.insert({
+      calendarId: 'primary', // Go to setting on your calendar to get Id
+      'resource': {
+        'summary': subject,
+        'description': subject,
+        'start': {
+          'dateTime': startfullTimeDatetime,
+          'timeZone': 'America/Los_Angeles'
+        },
+        'end': {
+          'dateTime': endfullTimeDate,
+          'timeZone': 'America/Los_Angeles'
+        },
+        'attendees': [
+          {
+            'email': 'tchang2017@example.com'
+          }
+        ]
+      }
+    }, (err, {data}) => {
+      if (err)
+        return console.log('The API returned an error: ' + err);
+      console.log(data)
+    })
+  }
+  else{
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
       'summary': subject,
       'description': subject,
       'start': {
-        'dateTime': time,
+        'dateTime': startfullTimeDatetime,
         'timeZone': 'America/Los_Angeles'
       },
       'end': {
-        'dateTime': time,
+        'dateTime': startfullTimeDatetime,
         'timeZone': 'America/Los_Angeles'
       },
       'attendees': [
@@ -307,17 +307,23 @@ function DialogFlow(text, id) {
             expiry_date: 1534290086191
           }
           console.log("THIS IS RESULT TESTING ", result.parameters.fields);
-          // let starttime = result.parameters.fields.time.stringValue;
-          // let endtime=result.parameters
-          // let parsedTime = time.slice(11, time.length)
-          // let subject = result.parameters.fields.subject.stringValue;
-          // let date = result.parameters.fields.date.stringValue;
+          let startTime = result.parameters.fields.startTime.stringValue;
+          let endTime=result.parameters.fields.endTime.stringValue;
+          let startparsedTime = startTime.slice(11, time.length);
+          let endparsedTime=endTime.slice(11,time.length);
+          let subject = result.parameters.fields.subject.stringValue;
+          //THIS IS THE DATE
+          let date = result.parameters.fields.date.stringValue;
           // console.log("THIS IS THE DATE OBJECT: ", new Date(date));
-          // let parsedDate = date.slice(0, 11)
-          // let fullTimeDate = parsedDate.concat(parsedTime)
-          // calenderData.push(token, fullTimeDate, subject, date,isMeeting)
+          let parsedDate = date.slice(0, 11)
+          let startfullTimeDate = parsedDate.concat(startparsedTime);
+          let endfullTimeDate=parsedDate.concat(endparsedTime);
+          calenderData.push(token, startfullTimeDate, subject, date,isMeeting,endfullTimeDate);
           // console.log("THIS IS CHANNEL: ", conversationId);
-          console.log("THIS IS RESULTS FOR MEETING: ",result);
+
+          // console.log("THIS IS START TIME FOR MEETING: ",startTime);
+          // console.log("THIS IS THE END TIME FOR MEETING: ", endTime);
+          // console.log("THIS IS THE DATE FOR MEETING: ",date);
           web.chat.postMessage({
             channel: conversationId,
             text: 'Set Meeting',
@@ -384,7 +390,8 @@ app.post('/buttonPostConfirm', (req, res) => {
   if (payload.actions[0].name === "yes") {
     //somehow call create calender fx, need all data passed to it though
     console.log("calender data arr", calenderData)
-    makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3])
+    //calendarData[4] is isMeeting and calendarData[5] is endfullTimeDate. If isMeeting is true, then calendarData[1] is startfullTimeDate
+    makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3],calendarData[4],calendarData[5])
     rtm.sendMessage("Your reminder has been created in the calender!", conversationId, (err, res) => {
       if (res) {
         console.log("reminder saved post confirm", res)
