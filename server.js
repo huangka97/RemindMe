@@ -306,7 +306,7 @@ function DialogFlow(text, id) {
             scope: 'https://www.googleapis.com/auth/calendar',
             expiry_date: 1534290086191
           }
-          console.log("THIS IS RESULT TESTING ")
+          console.log("THIS IS RESULT TESTING ", result.parameters.fields);
           // let starttime = result.parameters.fields.time.stringValue;
           // let endtime=result.parameters
           // let parsedTime = time.slice(11, time.length)
@@ -326,10 +326,10 @@ function DialogFlow(text, id) {
                 "fields": [
                   {
                     "title": "Subject",
-                    "value": subject
+                    "value": "TESTING"
                   }, {
                     "title": "Date",
-                    "value":
+                    "value":"DATE"
                   }
                 ],
                 "fallback": "You are unable to choose a game",
