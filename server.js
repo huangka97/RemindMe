@@ -156,14 +156,19 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
 // Google OAuth2 callback
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function(err, token) {
-    if (err)
-      return console.error(err.message)
+    if (err) return console.error(err.message)
       //HERE IS WHERE YOU LOOK AT TOKEN
     console.log("user token", token)
-    var newUser = new User({accessToken: token.access_token, refreshToken: token.refresh_token, slackID: slackID})
-    newUser.save().then((saved) => console.log("user token saved", saved)).catch((err) => console.log("user not saved", err))
+    var newUser = new User({
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token,
+      slackID: slackID
+    })
+    newUser.save()
+    .then((saved) => console.log("user token saved", saved))
+    .catch((err) => console.log("user not saved", err))
     // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
-    res.send('ok')
+    res.send('All set!')
   })
 })
 
@@ -174,7 +179,8 @@ let conversationId;
 rtm.on('message', function(event) {
   conversationId = event.channel
   slackID = event.user;
-  // console.log("THIS IS EVENT " ,event);
+  console.log("Event", event)
+;  // console.log("THIS IS EVENT " ,event);
   // console.log("THIS IS COMPARISON TEST FAM: ",event.bot_id,event.user);
   if (event.previous_message)
     console.log('@@@@', JSON.stringify(event.previous_message, null, 2))
