@@ -174,8 +174,8 @@ let conversationId;
 rtm.on('message', function(event) {
   conversationId = event.channel
   slackID = event.user;
-  console.log("THIS IS EVENT " ,event);
-  console.log("THIS IS COMPARISON TEST FAM: ",event.bot_id,event.user);
+  // console.log("THIS IS EVENT " ,event);
+  // console.log("THIS IS COMPARISON TEST FAM: ",event.bot_id,event.user);
   if (event.previous_message)
     console.log('@@@@', JSON.stringify(event.previous_message, null, 2))
   if (event.bot_id) {
@@ -217,7 +217,8 @@ function DialogFlow(text, id) {
     if (result.intent) {
       //THIS IS WHERE WE CAN DETECT WHAT THE INTENT IS
       console.log(`  Intent: ${result.intent.displayName}`);
-      if (result.fulfillmentText !== '') {
+      if (result.fulfillmentText) {
+        console.log("IF STATEMENT 1");
         rtm.sendMessage(result.fulfillmentText, conversationId, (err, res) => {
           if (res) {
             console.log("dialog response sent", res)
@@ -226,6 +227,8 @@ function DialogFlow(text, id) {
           }
         })
       } else if (result.intent.displayName == 'reminder:add') {
+        let isMeeting=false;
+        console.log("IF STATEMENT 2");
         console.log("fields i want to parse", result.parameters.fields)
         let time = result.parameters.fields.time.stringValue;
         let parsedTime = time.slice(11, time.length)
@@ -289,11 +292,77 @@ function DialogFlow(text, id) {
           console.log("user not found: this is error fam ", err)
         })
       }
-    } else if (result.intent.displayName === "schedule:add") {
-      console.log("THIS SHIT WORKS BITCHES");
+      else if (result.intent.displayName == "schedule:add") {
+      console.log("IN RESULT SCHEDULE:ADD");
+      User.findOne({slackID: slackID}).then((user) => {
+        console.log("IN USER.FIND ONE")
+
+        if (user) {
+          let token = {
+            access_token: user.accessToken,
+            refresh_token: user.refreshToken,
+            scope: 'https://www.googleapis.com/auth/calendar',
+            expiry_date: 1534290086191
+          }
+          // let starttime = result.parameters.fields.time.stringValue;
+          // let endtime=result.parameters
+          // let parsedTime = time.slice(11, time.length)
+          // let subject = result.parameters.fields.subject.stringValue;
+          // let date = result.parameters.fields.date.stringValue;
+          // console.log("THIS IS THE DATE OBJECT: ", new Date(date));
+          // let parsedDate = date.slice(0, 11)
+          // let fullTimeDate = parsedDate.concat(parsedTime)
+          // calenderData.push(token, fullTimeDate, subject, date)
+          // console.log("THIS IS CHANNEL: ", conversationId);
+          console.log("THIS IS RESULTS FOR MEETING: ",result);
+          web.chat.postMessage({
+            channel: conversationId,
+            text: 'Set Meeting',
+            "attachments": [
+              {
+                "fields": [
+                  {
+                    "title": "Subject",
+                    "value": "TEST"
+                  }, {
+                    "title": "Date",
+                    "value": "TEST"
+                  }
+                ],
+                "fallback": "You are unable to choose a game",
+                "callback_id": "wopr game",
+                "color": "#3AA3E3",
+                "attachment_type": "default",
+                "actions": [
+                  {
+                    "name": "yes",
+                    "text": "Confirm",
+                    "type": "button",
+                    "value": "true"
+                  }, {
+                    "name": "no",
+                    "text": "Cancel",
+                    "type": "button",
+                    "value": "false"
+                  }
+                ]
+              }
+            ]
+          }).then((res) => {
+            console.log("THIS IS RES", res);
+          }).catch((err) => console.log("ERROR FAM: ", err));
+        } else {
+          console.log("User not found so create new token");
+          createAuthUrl(token, fullTimeDate, subject, date);
+        }
+      }).catch((err) => {
+        console.log("user not found: this is error fam ", err)
+      })
+
     } else {
       console.log("No intent matched.");
     }
+  }
   }).catch(err => {
     console.error('ERROR:', err);
   });
