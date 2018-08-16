@@ -8,7 +8,7 @@
     "babel": "mkdir -p build && babel server.js -o build/main.bundle.js",
     "lint": "eslint --fix *.js",
     "backend-dev": "nodemon ./routes.js --exec babel-node",
-    "start": "babel-node server.js"
+    "yeet": "babel-node server.js"
   },
   "author": "",
   "license": "MIT",

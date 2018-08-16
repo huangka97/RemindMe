@@ -13,6 +13,7 @@ const User = models.User
 let slackID;
 let isMeeting=false;
 let calenderData = []
+let meetingData = []
 const app = express()
 const token = process.env.SLACK_TOKEN;
 const rtm = new RTMClient(token);
@@ -61,12 +62,12 @@ function createAuthUrl(token, time, subject, date) {
 
 // Google API create cal event
 
-function makeCalendarAPICall(token, startfullTimeDate, subject, date,isMeeting, endfullTimeDate) {
+function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting, endfullTimeDate, invArr) {
   const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
 
   oauth2Client.setCredentials(token)
-  console.log("TIME CHECK", time);
-  console.log("DATE", date);
+  // console.log("TIME CHECK", time);
+  // console.log("DATE", date);
 
   oauth2Client.on('tokens', (tokens) => {
     if (tokens.refresh_token) {
@@ -77,26 +78,23 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date,isMeeting, 
   });
 
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
-  console.log('THIS IS TIME FAM BAM: ', time);
+  // console.log('THIS IS TIME FAM BAM: ', time);
   if (isMeeting) {
+    const attendees = invArr.map((name) => {email: name})
     calendar.events.insert({
       calendarId: 'primary', // Go to setting on your calendar to get Id
       'resource': {
-        'summary': subject,
+        'summary': "Meeting",
         'description': subject,
         'start': {
-          'dateTime': startfullTimeDatetime,
+          'dateTime': startfullTimeDate,
           'timeZone': 'America/Los_Angeles'
         },
         'end': {
           'dateTime': endfullTimeDate,
           'timeZone': 'America/Los_Angeles'
         },
-        'attendees': [
-          {
-            'email': 'tchang2017@example.com'
-          }
-        ]
+        'attendees': attendees
       }
     }, (err, {data}) => {
       if (err)
@@ -109,7 +107,7 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date,isMeeting, 
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
-      'summary': subject,
+      'summary': 'Meeting',
       'description': subject,
       'start': {
         'dateTime': startfullTimeDatetime,
@@ -308,21 +306,29 @@ function DialogFlow(text, id) {
           }
           // console.log("THIS IS RESULT TESTING START", result.parameters.fields["time-period"].structValue.fields.startTime);
           // console.log("THIS IS RESULT TESTING END TIME", result.parameters.fields["time-period"].structValue.fields.endTime);
+
           let startTime = result.parameters.fields["time-period"].structValue.fields.startTime.stringValue;
           let endTime=result.parameters.fields["time-period"].structValue.fields.endTime.stringValue;
-
+          // console.log("results invitees", result.parameters.fields.invitees.listValue.values)
+          let invitees = result.parameters.fields.invitees.listValue.values
+          let inviteesArr = []
+          for (let i = 0; i < invitees.length; i++) {
+            let name = invitees[i].stringValue
+            inviteesArr.push(name)
+          }
           let startparsedTime = startTime.slice(11, startTime.length);
           let endparsedTime=endTime.slice(11,endTime.length);
           let subject = result.parameters.fields.subject.stringValue;
           //THIS IS THE DATE
           let date = result.parameters.fields.date.stringValue;
-          console.log("THIS IS THE DATE OBJECT: ", new Date(date));
+          // console.log("THIS IS THE DATE OBJECT: ", new Date(date));
           let parsedDate = date.slice(0, 11)
           let startfullTimeDate = parsedDate.concat(startparsedTime);
           let endfullTimeDate=parsedDate.concat(endparsedTime);
-          console.log("STARTFULLTIMEDATE",startfullTimeDate);
-          console.log("ENDFULLTIMEDATE",endfullTimeDate);
-          calenderData.push(token, startfullTimeDate, subject, date,isMeeting,endfullTimeDate);
+          // console.log("STARTFULLTIMEDATE",startfullTimeDate);
+          // console.log("ENDFULLTIMEDATE",endfullTimeDate);
+          meetingData.push(token, startfullTimeDate, subject, date, isMeeting, endfullTimeDate, inviteesArr);
+          console.log("calenderData arr ", calenderData)
           // console.log("THIS IS CHANNEL: ", conversationId);
           // console.log("THIS IS RESULTS FOR MEETING: ",result);
           web.chat.postMessage({
@@ -332,8 +338,8 @@ function DialogFlow(text, id) {
               {
                 "fields": [
                   {
-                    "title": "Subject",
-                    "value": subject
+                    "title": "Meeting With",
+                    "value": inviteesArr.join(', ')
                   }, {
                     "title": "Date",
                     "value":startfullTimeDate
@@ -368,7 +374,6 @@ function DialogFlow(text, id) {
       }).catch((err) => {
         console.log("user not found: this is error fam ", err)
       })
-
     } else {
       console.log("No intent matched.");
     }
@@ -411,7 +416,7 @@ app.post('/buttonPostConfirm', (req, res) => {
   }
   if (payload.actions[0].name === "yes" && payload.original_message.text === "Set Meeting") {
     console.log("hit enter meeting")
-    makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3])
+    makeCalendarAPICall(meetingData[0], meetingData[1], meetingData[2], meetingData[3], meetingData[4], meetingData[5], meetingData[6])
     rtm.sendMessage("Your Meeting has been created in your calender", conversationId, (err, res) => {
       if (res) {
         console.log("Meeting saved")
