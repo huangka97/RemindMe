@@ -228,7 +228,6 @@ function DialogFlow(text, id) {
           }
         })
       } else if (result.intent.displayName == 'reminder:add') {
-
         console.log("IF STATEMENT 2");
         console.log("fields i want to parse", result.parameters.fields)
         let time = result.parameters.fields.time.stringValue;
@@ -366,7 +365,8 @@ function DialogFlow(text, id) {
       console.log("No intent matched.");
     }
   }
-  }).catch(err => {
+}).catch((err) => {
+    //this is the catch for the sessionclient.detect (dialogFlow)
     console.error('ERROR:', err);
   });
 }
@@ -381,7 +381,7 @@ app.post('/buttonPostConfirm', (req, res) => {
   console.log("req payload", payload)
   console.log("payload actions", payload.actions)
   let conversationId = payload.channel.id
-  if (payload.actions[0].name === "yes") {
+  if (payload.actions[0].name === "yes" && payload.original_message.text === "Set Reminder") {
     //somehow call create calender fx, need all data passed to it though
     console.log("calender data arr", calenderData)
     makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3])
@@ -392,8 +392,27 @@ app.post('/buttonPostConfirm', (req, res) => {
         console.log("cofirm button err", err)
       }
     })
-  } else {
+  } else if (payload.actions[0].name === "no" && payload.original_message.text === "Set Reminder") {
     rtm.sendMessage("Reminder canceled", conversationId, (err, res) => {
+      if (res) {
+        console.log("reminder canceled hit res", res)
+      } else {
+        console.log("error canceling reminder", err)
+      }
+    })
+  }
+  if (payload.actions[0].name === "yes" && payload.original_message.text === "Set Meeting") {
+    console.log("hit enter meeting")
+    makeCalendarAPICall(calenderData[0], calenderData[1], calenderData[2], calenderData[3])
+    rtm.sendMessage("Your Meeting has been created in your calender", conversationId, (err, res) => {
+      if (res) {
+        console.log("Meeting saved")
+      } else {
+        console.log("Error creating meeting", err)
+      }
+    })
+  } else if (payload.actions[0].name === "no" && payload.original_message.text === "Set Meeting") {
+    rtm.sendMessage("Meeting canceled", conversationId, (err, res) => {
       if (res) {
         console.log("reminder canceled hit res", res)
       } else {
