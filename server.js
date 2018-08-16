@@ -105,6 +105,7 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date,isMeeting, 
     })
   }
   else {
+  console.log("CALENDAR TEST FAM");
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
@@ -305,18 +306,25 @@ function DialogFlow(text, id) {
             scope: 'https://www.googleapis.com/auth/calendar',
             expiry_date: 1534290086191
           }
-          console.log("THIS IS RESULT TESTING ", result.parameters.fields);
-          // let starttime = result.parameters.fields.time.stringValue;
-          // let endtime=result.parameters
-          // let parsedTime = time.slice(11, time.length)
-          // let subject = result.parameters.fields.subject.stringValue;
-          // let date = result.parameters.fields.date.stringValue;
-          // console.log("THIS IS THE DATE OBJECT: ", new Date(date));
-          // let parsedDate = date.slice(0, 11)
-          // let fullTimeDate = parsedDate.concat(parsedTime)
-          // calenderData.push(token, fullTimeDate, subject, date,isMeeting)
+          // console.log("THIS IS RESULT TESTING START", result.parameters.fields["time-period"].structValue.fields.startTime);
+          // console.log("THIS IS RESULT TESTING END TIME", result.parameters.fields["time-period"].structValue.fields.endTime);
+          let startTime = result.parameters.fields["time-period"].structValue.fields.startTime.stringValue;
+          let endTime=result.parameters.fields["time-period"].structValue.fields.endTime.stringValue;
+
+          let startparsedTime = startTime.slice(11, startTime.length);
+          let endparsedTime=endTime.slice(11,endTime.length);
+          let subject = result.parameters.fields.subject.stringValue;
+          //THIS IS THE DATE
+          let date = result.parameters.fields.date.stringValue;
+          console.log("THIS IS THE DATE OBJECT: ", new Date(date));
+          let parsedDate = date.slice(0, 11)
+          let startfullTimeDate = parsedDate.concat(startparsedTime);
+          let endfullTimeDate=parsedDate.concat(endparsedTime);
+          console.log("STARTFULLTIMEDATE",startfullTimeDate);
+          console.log("ENDFULLTIMEDATE",endfullTimeDate);
+          calenderData.push(token, startfullTimeDate, subject, date,isMeeting,endfullTimeDate);
           // console.log("THIS IS CHANNEL: ", conversationId);
-          console.log("THIS IS RESULTS FOR MEETING: ",result);
+          // console.log("THIS IS RESULTS FOR MEETING: ",result);
           web.chat.postMessage({
             channel: conversationId,
             text: 'Set Meeting',
@@ -325,10 +333,10 @@ function DialogFlow(text, id) {
                 "fields": [
                   {
                     "title": "Subject",
-                    "value": "TESTING"
+                    "value": subject
                   }, {
                     "title": "Date",
-                    "value":"DATE"
+                    "value":startfullTimeDate
                   }
                 ],
                 "fallback": "You are unable to choose a game",
