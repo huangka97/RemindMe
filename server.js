@@ -2,7 +2,7 @@ import {RTMClient, WebClient} from '@slack/client'
 import {google} from 'googleapis'
 import express from 'express'
 import bodyParser from 'body-parser'
-import axios from 'axios';
+import axios from 'axios'
 import models from "./models/models"
 import mongoose from 'mongoose'
 const path = require('path');
@@ -53,7 +53,7 @@ function createAuthUrl(token, time, subject, date) {
   rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err, res) => {
     if (res) {
       console.log("success")
-      makeCalendarAPICall(token, time, subject, date)
+
     } else {
       console.log("failure")
     }
@@ -110,11 +110,11 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
       'summary': 'Meeting',
       'description': subject,
       'start': {
-        'dateTime': startfullTimeDatetime,
+        'dateTime': startfullTimeDate,
         'timeZone': 'America/Los_Angeles'
       },
       'end': {
-        'dateTime': startfullTimeDatetime,
+        'dateTime': startfullTimeDate,
         'timeZone': 'America/Los_Angeles'
       },
       'attendees': [
@@ -159,16 +159,26 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     if (err) return console.error(err.message)
       //HERE IS WHERE YOU LOOK AT TOKEN
     console.log("user token", token)
-    var newUser = new User({
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token,
-      slackID: slackID
-    })
-    newUser.save()
-    .then((saved) => console.log("user token saved", saved))
-    .catch((err) => console.log("user not saved", err))
-    // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
-    res.send('All set!')
+
+    axios.get(`https://slack.com/api/users.profile.get/?token=${process.env.ACCESS_TOKEN}&user=${slackID}`).then(function(data){
+      console.log("THIS IS DATA: ", data);
+      let slackEmail=data.user.email;
+      var newUser = new User({
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        slackID: slackID,
+        slackEmail:data.user.email
+      })
+      console.log("TESTING IF SLACKEMAIL IS MADE:", slackEmail)
+      newUser.save()
+      .then((saved) => console.log("user token saved", saved))
+      .catch((err) => console.log("user not saved", err))
+      // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
+      res.send('All set!')
+
+    }).catch((err)=>console.log("axios called failed: ", err));
+
+
   })
 })
 
@@ -253,6 +263,7 @@ function DialogFlow(text, id) {
             }
             calenderData.push(token, fullTimeDate, subject, date,isMeeting)
             console.log("THIS IS CHANNEL: ", conversationId);
+
             web.chat.postMessage({
               channel: conversationId,
               text: 'Set Reminder',
