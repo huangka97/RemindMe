@@ -11,7 +11,7 @@ const assert = require('assert')
 const User = models.User
 
 let slackID;
-let isMeeting=false;
+let isMeeting = false;
 let calenderData = []
 let meetingData = []
 const app = express()
@@ -61,7 +61,8 @@ function createAuthUrl(slackId) {
 
 function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting, endfullTimeDate, invArr) {
   const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
-
+  console.log("THIS IS WHAT IS CONTAINED IN TOKEN: ", token);
+  let authToken=token.access_token;
   oauth2Client.setCredentials(token)
   // console.log("TIME CHECK", time);
   // console.log("DATE", date);
@@ -77,7 +78,13 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
   const calendar = google.calendar({version: 'v3', auth: oauth2Client});
   // console.log('THIS IS TIME FAM BAM: ', time);
   if (isMeeting) {
-    const attendees = invArr.map((name) => {email: name})
+
+    // for (let i = 0; i<invArr.length; i++) {
+    //   findEmail(invArr[i])
+    // }
+    const attendees = invArr.map((name) => {
+      email: FindEmail(name);
+    }) //db  query here to pull email
     calendar.events.insert({
       calendarId: 'primary', // Go to setting on your calendar to get Id
       'resource': {
@@ -104,7 +111,7 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
   calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
-      'summary': 'Meeting',
+      'summary': subject,
       'description': subject,
       'start': {
         'dateTime': startfullTimeDate,
@@ -173,34 +180,38 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
       //        console.log("not err");
       //    }
       // });
-    // axios.get(`https://slack.com/api/users.identity/?token=${process.env.ACCESS_TOKEN}`)
-    // .then((res) => {
-    //   console.log("axios response", res)
-    //   // let email = res.data.profile.email
-    //   // console.log("email", email)
-    //   // console.log("user token", token)
-    //   var newUser = new User({
-    //     accessToken: token.access_token,
-    //     refreshToken: token.refresh_token,
-    //     slackID: slackID,
-    //     // slackEmail: email
-    //   })
-    //   newUser.save()
-    //   .then((saved) => console.log("user token saved", saved))
-    //   .catch((err) => console.log("user not saved", err))
-    //   // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
-    // })
-    var newUser = new User({
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token,
-      slackID: req.query.state,
-      // slackEmail: email
+    axios.get(`https://slack.com/api/users.info?token=${process.env.ACCESS_TOKEN}&user=${req.query.state}`)
+    .then((res) => {
+      console.log("axios response", res.data)
+      // let email = res.data.profile.email
+      // console.log("email", email)
+      // console.log("user token", token)
+      let email = String(res.data.user.profile.email)
+      let name = String(res.data.user.profile.real_name)
+      var newUser = new User({
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        slackID: slackID,
+        slackEmail: email,
+        slackName: name
+      })
+      newUser.save()
+      .then((saved) => console.log("user token saved", saved))
+      .catch((err) => console.log("user not saved", err))
+      // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
     })
-    newUser.save()
-    .then((saved) => console.log("user token saved", saved))
-    .catch((err) => console.log("user not saved", err))
-    res.send('All set!')
+  //   var newUser = new User({
+  //     accessToken: token.access_token,
+  //     refreshToken: token.refresh_token,
+  //     slackID: req.query.state,
+  //     // slackEmail: email
+  //   })
+  //   newUser.save()
+  //   .then((saved) => console.log("user token saved", saved))
+  //   .catch((err) => console.log("user not saved", err))
+  // })
   })
+  res.send('All set!')
 })
 
 rtm.start();
@@ -266,6 +277,7 @@ function DialogFlow(text, id) {
           }
         })
       } else if (result.intent.displayName == 'reminder:add') {
+        isMeeting = false;
         console.log("IF STATEMENT 2");
         console.log("fields i want to parse", result.parameters.fields)
         let time = result.parameters.fields.time.stringValue;
@@ -423,9 +435,19 @@ function DialogFlow(text, id) {
 }
 
 //routes
-app.get('/ping', (req, res) => {
+app.get('/ping', (req, res) =>{
   console.log("pong")
 })
+
+//function for getting User Emails
+function FindEmail(name){
+  User.findOne({slackName:name})
+  .then((res) => {
+    console.log(res);
+  })
+}
+
+
 
 app.post('/buttonPostConfirm', (req, res) => {
   let payload = JSON.parse(req.body.payload)
@@ -472,3 +494,10 @@ app.post('/buttonPostConfirm', (req, res) => {
     })
   }
 })
+
+function FindEmail(name){
+  User.findOne({slackName:name})
+  .then((res) => {
+    console.log("THIS IS RES MY FAM BAM: ",res);
+  })
+}
