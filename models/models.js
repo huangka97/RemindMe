@@ -56,26 +56,29 @@ var MeetingSchema=new Schema({
 });
 
 var UserSchema=new Schema({
-  accessToken:{
+  accessToken: {
     type:String,
   },
-  refreshToken:{
+  refreshToken: {
     type:String,
   },
-  googleProfileId:{
+  googleProfileId: {
     type:String,
   },
-  defaultMeetingTime:{
+  defaultMeetingTime: {
     type:String,
   },
-  slackID:{
+  slackID: {
     type:String,
   },
-  slackEmail:{
+  slackEmail: {
     type:String,
   },
-  slackDMIds:{
+  slackDMIds: {
     type:String,
+  },
+  slackName: {
+    type: String
   }
 });
 
