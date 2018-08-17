@@ -187,13 +187,14 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
       // console.log("email", email)
       // console.log("user token", token)
       let email = String(res.data.user.profile.email)
-      let name = String(res.data.user.profile["real_name"])
+      let oldName = String(res.data.user.profile["real_name"])
+      let newName=oldName.split(" ")[0];
       var newUser = new User({
         accessToken: token.access_token,
         refreshToken: token.refresh_token,
         slackID: slackID,
         slackEmail: email,
-        slackName: name
+        slackName: newName
       })
       newUser.save()
       .then((saved) => console.log("user token saved", saved))
@@ -496,6 +497,7 @@ app.post('/buttonPostConfirm', (req, res) => {
 })
 
 function FindEmail(name){
+  console.log("THIS IS THE NAME: ", name);
   User.findOne({slackName:name})
   .then((res) => {
     console.log("THIS IS RES MY FAM BAM: ",res);
