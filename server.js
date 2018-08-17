@@ -21,7 +21,6 @@ const web = new WebClient(token);
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
-// app.use('/', router(rtm, web))
 
 //mongo
 if (! fs.existsSync('./env.sh')) {
@@ -39,21 +38,19 @@ mongoose.connection.on('error', function() {
 });
 mongoose.connect(process.env.MONGODB_URI);
 
-
-// An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
-
-
-// https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URL)
 
-function createAuthUrl(token, time, subject, date) {
-  console.log("ENTERED CREATE AUTH URL");
-  const authUrl = oauth2Client.generateAuthUrl({access_type: 'offline', scope: ['https://www.googleapis.com/auth/calendar']})
-
+function createAuthUrl(slackId) {
+  console.log("ENTERED CREATE AUTH URL", slackId);
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    state: slackId,
+    scope: ['https://www.googleapis.com/auth/calendar']
+  })
   rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err, res) => {
     if (res) {
       console.log("success")
-      makeCalendarAPICall(token, time, subject, date)
+      // makeCalendarAPICall(token, time, subject, date)
     } else {
       console.log("failure")
     }
@@ -110,11 +107,11 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
       'summary': 'Meeting',
       'description': subject,
       'start': {
-        'dateTime': startfullTimeDatetime,
+        'dateTime': startfullTimeDate,
         'timeZone': 'America/Los_Angeles'
       },
       'end': {
-        'dateTime': startfullTimeDatetime,
+        'dateTime': startfullTimeDate,
         'timeZone': 'America/Los_Angeles'
       },
       'attendees': [
@@ -157,17 +154,51 @@ function makeCalendarAPICall(token, startfullTimeDate, subject, date, isMeeting,
 app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => {
   oauth2Client.getToken(req.query.code, function(err, token) {
     if (err) return console.error(err.message)
+    console.log("req query state", req.query.state)
       //HERE IS WHERE YOU LOOK AT TOKEN
-    console.log("user token", token)
+      // web._makeAPICall('users.profile.get', null, {
+      //   user: slackID, //optional user param
+      // }, function(err, info) {
+      //    //err is set if there was an error
+      //    console.log("Info", info)
+      //    var newUser = new User({
+      //      accessToken: token.access_token,
+      //      refreshToken: token.refresh_token,
+      //      slackID: slackID
+      //    })
+      //    newUser.save()
+      //    .then((saved) => console.log("user token saved", saved))
+      //    .catch((err) => console.log("user not saved", err))
+      //    if (!err) {
+      //        console.log("not err");
+      //    }
+      // });
+    // axios.get(`https://slack.com/api/users.identity/?token=${process.env.ACCESS_TOKEN}`)
+    // .then((res) => {
+    //   console.log("axios response", res)
+    //   // let email = res.data.profile.email
+    //   // console.log("email", email)
+    //   // console.log("user token", token)
+    //   var newUser = new User({
+    //     accessToken: token.access_token,
+    //     refreshToken: token.refresh_token,
+    //     slackID: slackID,
+    //     // slackEmail: email
+    //   })
+    //   newUser.save()
+    //   .then((saved) => console.log("user token saved", saved))
+    //   .catch((err) => console.log("user not saved", err))
+    //   // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
+    // })
     var newUser = new User({
       accessToken: token.access_token,
       refreshToken: token.refresh_token,
-      slackID: slackID
+      slackID: req.query.state,
+      // slackEmail: email
     })
     newUser.save()
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
-    // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
     res.send('All set!')
   })
 })
@@ -178,8 +209,7 @@ let conversationId;
 
 rtm.on('message', function(event) {
   conversationId = event.channel
-  slackID = event.user;
-  console.log("Event", event)
+  // console.log("Event", event)
 ;  // console.log("THIS IS EVENT " ,event);
   // console.log("THIS IS COMPARISON TEST FAM: ",event.bot_id,event.user);
   if (event.previous_message)
@@ -187,6 +217,8 @@ rtm.on('message', function(event) {
   if (event.bot_id) {
     return;
   } else {
+    slackID = event.user;
+    console.log("event user", event.user)
     DialogFlow(event.text, event.user)
   }
 })
@@ -205,6 +237,7 @@ const sessionClient = new dialogflow.SessionsClient();
 
 //send user text to dialogflow
 function DialogFlow(text, id) {
+  let unicorn = id
   const sessionId = id;
   const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
 
@@ -290,8 +323,8 @@ function DialogFlow(text, id) {
               console.log("THIS IS RES", res);
             }).catch((err) => console.log("ERROR FAM: ", err));
           } else {
-            console.log("User not found so create new token");
-            createAuthUrl(token, fullTimeDate, subject, date);
+            console.log("User not found so create new token", unicorn);
+            createAuthUrl(unicorn);
           }
         }).catch((err) => {
           console.log("user not found: this is error fam ", err)
@@ -300,9 +333,8 @@ function DialogFlow(text, id) {
       else if (result.intent.displayName == "schedule:add") {
       isMeeting=true;
       console.log("IN RESULT SCHEDULE:ADD");
-      User.findOne({slackID: slackID}).then((user) => {
+      User.findOne({slackID: unicorn}).then((user) => {
         console.log("IN USER.FIND ONE")
-
         if (user) {
           let token = {
             access_token: user.accessToken,
@@ -374,8 +406,8 @@ function DialogFlow(text, id) {
             console.log("THIS IS RES", res);
           }).catch((err) => console.log("ERROR FAM: ", err));
         } else {
-          console.log("User not found so create new token");
-          createAuthUrl(token, fullTimeDate, subject, date);
+          console.log("unicorn", unicorn);
+          createAuthUrl(unicorn);
         }
       }).catch((err) => {
         console.log("user not found: this is error fam ", err)
