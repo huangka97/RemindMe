@@ -2,7 +2,7 @@ import {RTMClient, WebClient} from '@slack/client'
 import {google} from 'googleapis'
 import express from 'express'
 import bodyParser from 'body-parser'
-import axios from 'axios'
+import axios from 'axios';
 import models from "./models/models"
 import mongoose from 'mongoose'
 const path = require('path');
@@ -17,7 +17,7 @@ let meetingData = []
 const app = express()
 const token = process.env.SLACK_TOKEN;
 const rtm = new RTMClient(token);
-const web = new WebClient(token);
+const web = new WebClient(token);0
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
@@ -50,11 +50,7 @@ function createAuthUrl(slackId) {
   rtm.sendMessage(`Click on the following url ${authUrl}`, conversationId, (err, res) => {
     if (res) {
       console.log("success")
-<<<<<<< HEAD
       // makeCalendarAPICall(token, time, subject, date)
-=======
-
->>>>>>> 40ae857394bced979115befbbb1b4ae538fb784a
     } else {
       console.log("failure")
     }
@@ -160,7 +156,6 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     if (err) return console.error(err.message)
     console.log("req query state", req.query.state)
       //HERE IS WHERE YOU LOOK AT TOKEN
-<<<<<<< HEAD
       // web._makeAPICall('users.profile.get', null, {
       //   user: slackID, //optional user param
       // }, function(err, info) {
@@ -205,29 +200,6 @@ app.get(process.env.REDIRECT_URL.replace(/https?:\/\/.+\//, '/'), (req, res) => 
     .then((saved) => console.log("user token saved", saved))
     .catch((err) => console.log("user not saved", err))
     res.send('All set!')
-=======
-    console.log("user token", token)
-
-    axios.get(`https://slack.com/api/users.profile.get/?token=${process.env.ACCESS_TOKEN}&user=${slackID}`).then(function(data){
-      console.log("THIS IS DATA: ", data);
-      let slackEmail=data.user.email;
-      var newUser = new User({
-        accessToken: token.access_token,
-        refreshToken: token.refresh_token,
-        slackID: slackID,
-        slackEmail:data.user.email
-      })
-      console.log("TESTING IF SLACKEMAIL IS MADE:", slackEmail)
-      newUser.save()
-      .then((saved) => console.log("user token saved", saved))
-      .catch((err) => console.log("user not saved", err))
-      // console.log('token', token, 'req.query:', req.query)  req.query.state <- meta-data
-      res.send('All set!')
-
-    }).catch((err)=>console.log("axios called failed: ", err));
-
-
->>>>>>> 40ae857394bced979115befbbb1b4ae538fb784a
   })
 })
 
@@ -314,7 +286,6 @@ function DialogFlow(text, id) {
             }
             calenderData.push(token, fullTimeDate, subject, date,isMeeting)
             console.log("THIS IS CHANNEL: ", conversationId);
-
             web.chat.postMessage({
               channel: conversationId,
               text: 'Set Reminder',
@@ -360,7 +331,7 @@ function DialogFlow(text, id) {
         })
       }
       else if (result.intent.displayName == "schedule:add") {
-      isMeeting=true;
+      isMeeting = true;
       console.log("IN RESULT SCHEDULE:ADD");
       User.findOne({slackID: unicorn}).then((user) => {
         console.log("IN USER.FIND ONE")
