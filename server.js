@@ -17,7 +17,7 @@ let meetingData = []
 const app = express()
 const token = process.env.SLACK_TOKEN;
 const rtm = new RTMClient(token);
-const web = new WebClient(token);0
+const web = new WebClient(token);
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
